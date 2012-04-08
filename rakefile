@@ -1,0 +1,92 @@
+# Ruby Rakefile for Thoughtgang Plugin module
+# Copyright 2012 Thoughtgang <http://www.thoughtgang.org>
+
+#require 'rake/packagetask'
+require 'rdoc/task'
+require 'rake/testtask'
+require 'rubygems/package_task'
+
+MOD_NAME    = 'tg-plugins'
+MOD_VERSION = '0.1'
+
+# ---------------------------------------------------------------------- 
+# Default build target(s)
+task :default => [:test]
+
+# Ruby modules divided into gems
+MOD_FILES = FileList[
+  'lib/tg/*.rb'
+]
+
+UNIT_TESTS = FileList[ 
+  'tests/ut_*.rb'
+]
+
+# Examples
+EXAMPLE_FILES = FileList[
+  'doc/examples/*.rb'
+]
+
+# Additional files for rdoc
+RDOC_EXTRA_FILES = FileList[
+  'doc/*.rdoc'
+]
+
+# ---------------------------------------------------------------------- 
+# GEM
+
+spec = Gem::Specification.new do |spec|
+  spec.name = MOD_NAME
+  spec.version = MOD_VERSION
+  spec.summary = 'Plugin and PluginManager classes'
+  spec.description = '
+  '
+
+  spec.author = 'ThoughtGang'
+  spec.email = 'support@thoughtgang.org'
+  spec.homepage = 'http://www.thoughtgang.org'
+  #spec.licenses = [ "GPLv3" ]
+
+  spec.required_ruby_version = '>= 1.8.7'
+  #spec.required_ruby_version = '>= 1.9.0'
+  spec.requirements = []
+
+  spec.files = MOD_FILES
+  spec.executables = BIN_FILES
+
+  #spec.extra_rdoc_files = Dir['module/rdoc_input/*.rb']
+  #spec.extensions = Dir['module/extconf.rb']
+  spec.test_files = MOD_UNIT_TESTS
+end
+
+Gem::PackageTask.new(spec) do |pkg|
+  # pkg.enhance( [ :ui ] )
+  pkg.need_zip = false
+  pkg.need_tar = true
+end
+
+# ---------------------------------------------------------------------- 
+# RDOC
+
+RDoc::Task.new do |rd|
+  # Page to display in index.html
+  rd.main = 'README.rdoc'
+
+  # Output directory
+  rd.rdoc_dir = 'doc/html'
+
+  # Doc and embedded-doc files for rdoc to process
+  rd.rdoc_files << 'README.rdoc' 
+  rd.rdoc_files += RDOC_EXTRA_FILES
+  rd.rdoc_files += EXAMPLE_FILES
+end
+
+# ---------------------------------------------------------------------- 
+# TEST
+
+Rake::TestTask.new do |t|
+  t.libs << Dir.pwd
+  t.test_files = UNIT_TESTS
+  t.verbose = true
+  t.warning = true
+end
