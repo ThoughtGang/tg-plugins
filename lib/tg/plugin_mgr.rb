@@ -7,61 +7,69 @@ Copyright 2012 Thoughtgang <http://www.thoughtgang.org>
 =end
 
 require 'tg/plugin'
-require 'tg/plugins/shared/specification'
+
+# TODO: debug, debug stream ($stderr)
 
 module TG
 
-# TODO : generalize application service hooks
-#        ensure caller/child-provided plugin dirs
-
 =begin rdoc
-An application service for managing plugins. There are two main reponsibilities
-of the service: finding and loading ('read') Ruby module files that contain
+A (singleton) object for managing plugins. The PluginManager has two main 
+reponsibilities: finding and loading ('read') Ruby module files that contain
 Plugin classes, and instantiating ('load') those classes. Additional features
 include conveying notifications between the application and the plugins,
 resolving Plugin dependencies, and listing or finding Plugins.
 
-The PluginManager acts as a singleton; everything is handled through class
-members and class methods. Many functions are delegates for Plugin class 
-methods.
+All PluginManager operations are handled through class members and class 
+methods. Many functions are delegates for Plugin class methods.
 
 Example:
 
-  require 'tg/application'
+  require 'tg/plugin_mgr'
 
   class TheApplication
-    include Application
-
-    attr_reader :plugin_mgr
-
     def initialize(argv)
-      # ... init code ...
-      @plugin_mgr.add_base_dir( File.join('the_app', 'plugins') )
-      Service.init_services
+      TG::PluginManager.add_base_dir( File.join('the_app', 'plugins') )
+      TG::PluginManager.app_init(self)
+      # ... other initialization code ...
+      TG::PluginManager.app_startup(self)
+    end
+
+    def load_file(path)
+      # ... create obj from path ...
+      TG::PluginManager.app_object_loaded(obj, self)
+    end
+
+    def exit
+      TG::PluginManager.app_shutdown(self)
     end
   end
 
+In this example, app_init() and app_startup() are called at the start and end
+of application initialization. The plugins are loaded in app_init(), giving
+the application a chance to make use of the plugins before sending all plugins
+the startup signal in app_startup(). An alternative would be to invoke
+app_init_and_startup:
+
+    def initialize(argv)
+      TG::PluginManager.add_base_dir( File.join('the_app', 'plugins') )
+      TG::PluginManager.app_init_and_startup(self)
+    end
+
 =end
   class PluginManager
-    #extend Service
-
     CONF_NAME = 'plugins'
 
     # Location of shared modules under the plugin base directories. Any
     # directory with this name is not scanned for Plugin modules.
     SHARED_DIR='shared'
 
-    NOTIFY_LOAD = :load
-    NOTIFY_UNLOAD = :unload
+    NOTIFY_LOAD = :load       # a plugin was loaded
+    NOTIFY_UNLOAD = :unload   # a plugin was unloaded
     # Notifications sent by plugins or by the PluginManager
     NOTIFICATIONS = [NOTIFY_LOAD, NOTIFY_UNLOAD].freeze
-    # TODO: Replace with a proper Notification object that includes Plugin obj
 
-    # subscribers to plugin notifications
-    @subscribers = {}
-
-    # plugin registry
-    @plugins = {}
+    @subscribers = {}         # subscribers to plugin notifications
+    @plugins = {}             # registry of plugin objects {String -> Plugin}
 
     # list of plugin names (Plugin.canon_name) to prevent from loading.
     @blacklist = []
@@ -72,7 +80,131 @@ Example:
     # Names of directories containing plugins. Every entry in this list is
     # appended to each entry in the Ruby module load path when searching
     # for plugins.
-    @base_dirs = [File.join('tg', 'plugins')]
+    @base_dirs = []
+
+    # ----------------------------------------------------------------------
+    # Hooks
+
+=begin rdoc
+Initialize the Plugin Manager. The 'app' object can be used to obtain
+configuration information (e.g. locations of plugins) by derived classes. This
+default implementation ignores the 'app' argument.
+
+This clears the list of loaded plugins. reads the ruby modules in all plugin 
+directories, then loads all plugins that are not blacklisted.
+
+This should be invoked when an application is being initialized.
+=end
+    def self.app_init(app=nil)
+      clear
+      read_all
+      load_all
+    end
+
+=begin rdoc
+Invoke Plugin#application_startup(app) in every loaded plugin. The 'app'
+object can be used by the plugins to obtain configuration information. Note 
+that the default implementation of Plugin#application_startup ignores the 
+'app' argument.
+
+This should be invoked after an application has completed startup.
+=end
+    def self.app_startup(app=nil)
+      @plugins.values.each { |p| p.application_startup(app) }
+    end
+
+=begin rdoc
+A convenience function that invokes app_init() followed by app_startup().
+=end
+    def self.app_init_and_startup(app=nil)
+      self.app_init app
+      self.app_startup app
+    end
+
+=begin rdoc
+Invoke Plugin#application_object_load(app, obj) in every loaded plugin. The
+'obj' object is the object that has been loaded by the application. The 'app' 
+object can be used by the plugins to obtain application state.  Note that the
+default implementation of Plugin#application_object_load ignores the 'obj'
+and the 'app' arguments.
+
+This is invoked by the application whenever a new document or project is
+loaded. This gives plugins a chance to register themselves with new
+document windows.
+
+See Plugin.startup.
+=end
+    def self.app_object_loaded(obj, app=nil)
+      # NOTE: the order of app and obj are reversed to make app optional here
+      @plugins.values.each { |p| p.application_object_load(app, obj) }
+    end
+
+=begin rdoc
+Invoke Plugin#application_shutdown(app) in every loaded plugin. The 'app'
+object can be used to save configuration. Note that the default implementation
+of Plugin#application_shutdown ignores the 'app' parameter.
+
+This should be invoked after an application is about to commence shutdown.
+
+See Plugin.startup.
+=end
+    def self.app_shutdown(app)
+      @plugins.values.each { |p| p.application_shutdown(app) }
+    end
+
+    # ----------------------------------------------------------------------
+    # Subscribers
+      
+=begin rdoc
+Subscribe to PluginManager notifications. The name is a String or Symbol used
+to uniquely identify the subscriber (for unsubscribe purposes); the block is
+invoked whenever a notification is sent. 
+
+The block is invoked with the parameters |notification, plugin|, where
+notification is a Symbol identifying the event type, and plugin is the Plugin
+object to which the event applies.
+=end
+    def self.subscribe(name, &block)
+      @subscribers[name] = block
+    end
+
+=begin rdoc
+Remove 'name' from the list of notification subscribers.
+=end
+    def self.unsubscribe(name)
+      @subscribers.delete(name)
+    end
+
+=begin rdoc
+Notify all subscribers of a PluginManager event. This sends the specified
+notification and the Plugin object to all subscribers.
+=end
+    def self.notify(notification, plugin)
+      @subscribers.values.each { |blk| blk.call(notification, plugin) }
+    end
+
+    # ----------------------------------------------------------------------
+    # Adminstration
+
+=begin rdoc
+Unload all plugins. This leaves the configuration of the PluginManager
+(blacklists, subscribers, base dirs, etc) intact.
+=end
+    def self.clear
+      @plugins.clear
+    end
+
+=begin rdoc
+Clear the PluginManager lists of base directories, blacklisted plugins,
+blacklisted plugin modules, and subscribers.
+=end
+    def self.purge
+      self.clear
+      @blacklist.clear
+      @blacklist_file.clear
+      @basedirs.clear
+      @subscribers.clear
+    end
 
 =begin rdoc
 Add a base directory to search for plugins. This is usually in the format
@@ -112,39 +244,8 @@ users via config files.
       @blacklist_file.concat [path].flatten
     end
 
-      # ----------------------------------------------------------------------
-
-=begin rdoc
-Return a Hash [String -> Plugin] of all loaded plugins. String is the
-canonical name (Plugin#canon_name) of the plugin.
-=end
-    def self.plugins
-      @plugins.dup
-    end
-
-=begin rdoc
-Return an Array of all available (i.e., successfully loaded via Kernel#load)
-Plugin classes.
-=end
-    def self.plugin_modules
-      TG::Plugin::available_plugins
-    end
-
-=begin rdoc
-Return a Hash [Symbol -> Plugin::Specification] of all registered specs. Symbol
-is the name of the Specification. A spec is registered by instantiating 
-Plugin::Specification.
-=end
-    def self.specifications
-      TG::Plugin::Specification.specs
-    end
-
-      # alias for specifications
-    def self.specs
-     specifications
-    end
-
-      # ----------------------------------------------------------------------
+    # ----------------------------------------------------------------------
+    # Load/Unload Plugins
 
 =begin rdoc
 Ensure that dependencies for a Plugin are loaded. This will return true if
@@ -274,111 +375,45 @@ and invokes read_dir() on the resulting path.
       end
     end
 
-      # ----------------------------------------------------------------------
+    # ----------------------------------------------------------------------
+    # List Plugins/Specs
+
 =begin rdoc
-Initialize the Plugin Manager.
-This reads the ruby modules in all plugin directories, then loads all plugins 
-that are not blacklisted.
+Return a Hash [String -> Plugin] of all loaded plugins. String is the
+canonical name (Plugin#canon_name) of the plugin.
 =end
-    def self.init
-      clear
-      read_config
-      read_all
-      load_all
+    def self.plugins
+      @plugins.dup
     end
 
 =begin rdoc
+Return an Array of all available (i.e., successfully loaded via Kernel#load)
+Plugin classes.
 =end
-    def self.read_config
-      @config = Application.config.read_config(CONF_NAME)
-      # TODO: read blacklist, plugin dirs, etc
+    def self.plugin_modules
+      TG::Plugin::available_plugins
     end
 
 =begin rdoc
-Invoke Plugin#application_startup(app) in every loaded plugin.
-
-This should be invoked after an application has completed startup.
+Return a Hash [Symbol -> Plugin::Specification] of all registered specs. Symbol
+is the name of the Specification. A spec is registered by instantiating 
+Plugin::Specification.
 =end
-    def self.startup(app)
-      @plugins.values.each { |p| p.application_startup(app) }
+    def self.specifications
+      TG::Plugin::Specification.specs
     end
 
-=begin rdoc
-Invoke Plugin#application_object_load(app, obj) in every loaded plugin.
-
-This is invoked by the application whenever a new document or project is
-loaded. This gives plugins a chance to register themselves with new
-document windows.
-=end
-    def self.object_loaded(app, obj)
-      @plugins.values.each { |p| p.application_object_load(app, obj) }
+    # alias for specifications
+    def self.specs
+     specifications
     end
 
-=begin rdoc
-Invoke Plugin#application_shutdown(app) in every loaded plugin.
-
-This should be invoked after an application is about to commence shutdown.
-=end
-    def self.shutdown(app)
-      @plugins.values.each { |p| p.application_shutdown(app) }
-    end
+    # ----------------------------------------------------------------------
+    # Find/Match Plugins
 
 =begin rdoc
-Unload all plugins. This leaves the configuration of the PluginManager
-(blacklists, subscribers, base dirs, etc) intact.
-=end
-    def self.clear
-      @plugins.clear
-    end
-
-=begin rdoc
-Clear the PluginManager lists of base directories, blacklisted plugins,
-blacklisted plugin modules, and subscribers.
-
-Note: This clears the basedirs list completely -- even the builtin base_dir
-will be removed.
-=end
-    def self.purge
-      self.clear
-      @blacklist.clear
-      @blacklist_file.clear
-      @basedirs.clear
-      @subscribers.clear
-    end
-
-      # ----------------------------------------------------------------------
-      
-=begin rdoc
-Subscribe to PluginManager notifications. The name is a String or Symbol used
-to uniquely identify the subscriber (for unsubscribe purposes); the block is
-invoked whenever a notification is sent. 
-
-The block is invoked with the parameters |notification, plugin|, where
-notification is a Symbl identifying the event type, and plugin is the Plugin
-object to which the event applies.
-=end
-    def self.subscribe(name, &block)
-      @subscribers[name] = block
-    end
-
-=begin rdoc
-Remove 'name' from the list of notification subscribers.
-=end
-    def self.unsubscribe(name)
-      @subscribers.delete(name)
-    end
-
-=begin rdoc
-Notify all subscribers of a PluginManager event.
-=end
-    def self.notify(notification, plugin)
-      @subscribers.values.each { |blk| blk.call(notification, plugin) }
-    end
-
-      # ----------------------------------------------------------------------
-=begin rdoc
-Return the first Plugin whose canon_name matches 'name'.
-Note that name can be a String or a Regexp.
+Return the first Plugin whose canon_name matches 'name'. Note that 'name'
+can be a String or a Regexp.
 =end
     def self.find(name)
       matches = @plugins.keys.sort.select { |k| (name.kind_of? Regexp) ? 
