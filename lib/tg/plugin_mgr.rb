@@ -82,6 +82,10 @@ app_init_and_startup:
     # for plugins.
     @@base_dirs = []
 
+    # Names of directories containing plugins. The entries in this list are
+    # used directly and should contain absolute paths.
+    @@absolute_dirs = []
+
     # ----------------------------------------------------------------------
     # Hooks
 
@@ -218,6 +222,14 @@ during read_all.
     end
 
 =begin rdoc
+Add a specific directory to search for plugins. This is an absolute path to a
+directory containing a plugin tree.
+=end
+    def self.add_plugin_dir(path)
+      @@absolute_dirs.concat [path].flatten
+    end
+
+=begin rdoc
 Blacklist a Plugin class by name.
 Note: 'name' is expected to be obtained from Plugin.canon_name. The blacklist
 checks for an exact match against this name when loading Plugin classes; this
@@ -327,7 +339,7 @@ Read a Plugin Ruby module via Kernel#load. This checks if the module was
 blacklisted via blacklist_file().
 =end
     def self.read_file(path)
-      return if (! @@blacklist_file.select { |d| d.end_with? path }.empty? )
+      return if (! @@blacklist_file.select { |d| path.end_with? d }.empty? )
         
       begin
         load path
@@ -372,6 +384,12 @@ and invokes read_dir() on the resulting path.
           next if (! File.exist? path) || (! File.directory? path)
           read_dir(path)
         end
+      end
+
+      # Read in all plugin directories in absolute dirs
+      @@absolute_dirs.each do |path| 
+        next if (! File.exist? path) || (! File.directory? path)
+        read_dir(path)
       end
     end
 
