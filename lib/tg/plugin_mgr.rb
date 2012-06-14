@@ -233,7 +233,8 @@ directory containing a plugin tree.
 Blacklist a Plugin class by name.
 Note: 'name' is expected to be obtained from Plugin.canon_name. The blacklist
 checks for an exact match against this name when loading Plugin classes; this
-allows specific versions of a Plugin to be blacklisted.
+allows specific versions of a Plugin to be blacklisted. The String returned
+by Plugin#canon_name is Plugin.name + '-' + Plugin.version.
 =end
     def self.blacklist(name)
       @@blacklist.concat [name].flatten
