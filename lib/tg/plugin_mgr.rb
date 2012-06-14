@@ -68,19 +68,19 @@ app_init_and_startup:
     # Notifications sent by plugins or by the PluginManager
     NOTIFICATIONS = [NOTIFY_LOAD, NOTIFY_UNLOAD].freeze
 
-    @subscribers = {}         # subscribers to plugin notifications
-    @plugins = {}             # registry of plugin objects {String -> Plugin}
+    @@subscribers = {}         # subscribers to plugin notifications
+    @@plugins = {}             # registry of plugin objects {String -> Plugin}
 
     # list of plugin names (Plugin.canon_name) to prevent from loading.
-    @blacklist = []
+    @@blacklist = []
 
     # list of module names (full paths) to prevent from loading
-    @blacklist_file = []
+    @@blacklist_file = []
 
     # Names of directories containing plugins. Every entry in this list is
     # appended to each entry in the Ruby module load path when searching
     # for plugins.
-    @base_dirs = []
+    @@base_dirs = []
 
     # ----------------------------------------------------------------------
     # Hooks
@@ -110,7 +110,7 @@ that the default implementation of Plugin#application_startup ignores the
 This should be invoked after an application has completed startup.
 =end
     def self.app_startup(app=nil)
-      @plugins.values.each { |p| p.application_startup(app) }
+      @@plugins.values.each { |p| p.application_startup(app) }
     end
 
 =begin rdoc
@@ -136,7 +136,7 @@ See Plugin.startup.
 =end
     def self.app_object_loaded(obj, app=nil)
       # NOTE: the order of app and obj are reversed to make app optional here
-      @plugins.values.each { |p| p.application_object_load(app, obj) }
+      @@plugins.values.each { |p| p.application_object_load(app, obj) }
     end
 
 =begin rdoc
@@ -149,7 +149,7 @@ This should be invoked after an application is about to commence shutdown.
 See Plugin.startup.
 =end
     def self.app_shutdown(app)
-      @plugins.values.each { |p| p.application_shutdown(app) }
+      @@plugins.values.each { |p| p.application_shutdown(app) }
     end
 
     # ----------------------------------------------------------------------
@@ -165,14 +165,14 @@ notification is a Symbol identifying the event type, and plugin is the Plugin
 object to which the event applies.
 =end
     def self.subscribe(name, &block)
-      @subscribers[name] = block
+      @@subscribers[name] = block
     end
 
 =begin rdoc
 Remove 'name' from the list of notification subscribers.
 =end
     def self.unsubscribe(name)
-      @subscribers.delete(name)
+      @@subscribers.delete(name)
     end
 
 =begin rdoc
@@ -180,7 +180,7 @@ Notify all subscribers of a PluginManager event. This sends the specified
 notification and the Plugin object to all subscribers.
 =end
     def self.notify(notification, plugin)
-      @subscribers.values.each { |blk| blk.call(notification, plugin) }
+      @@subscribers.values.each { |blk| blk.call(notification, plugin) }
     end
 
     # ----------------------------------------------------------------------
@@ -191,7 +191,7 @@ Unload all plugins. This leaves the configuration of the PluginManager
 (blacklists, subscribers, base dirs, etc) intact.
 =end
     def self.clear
-      @plugins.clear
+      @@plugins.clear
     end
 
 =begin rdoc
@@ -200,10 +200,10 @@ blacklisted plugin modules, and subscribers.
 =end
     def self.purge
       self.clear
-      @blacklist.clear
-      @blacklist_file.clear
-      @basedirs.clear
-      @subscribers.clear
+      @@blacklist.clear
+      @@blacklist_file.clear
+      @@basedirs.clear
+      @@subscribers.clear
     end
 
 =begin rdoc
@@ -214,7 +214,7 @@ the resulting path exists and is a directory, it is searched for plugins
 during read_all.
 =end
     def self.add_base_dir(path)
-      @base_dirs.concat [path].flatten
+      @@base_dirs.concat [path].flatten
     end
 
 =begin rdoc
@@ -224,7 +224,7 @@ checks for an exact match against this name when loading Plugin classes; this
 allows specific versions of a Plugin to be blacklisted.
 =end
     def self.blacklist(name)
-      @blacklist.concat [name].flatten
+      @@blacklist.concat [name].flatten
     end
 
 =begin rdoc
@@ -241,7 +241,7 @@ plugins in their install dir. Applications can provide blacklist support to
 users via config files.
 =end
     def self.blacklist_file(path)
-      @blacklist_file.concat [path].flatten
+      @@blacklist_file.concat [path].flatten
     end
 
     # ----------------------------------------------------------------------
@@ -282,9 +282,9 @@ Plugin was blacklisted, and if the Plugin dependencies are all met.
 If the plugin was successfully loaded, all subscribers will be notified.
 =end
     def self.load_plugin(cls)
-      return @plugins[cls.canon_name] if (@plugins.include? cls.canon_name)
+      return @@plugins[cls.canon_name] if (@@plugins.include? cls.canon_name)
 
-      if @blacklist.include? cls.canon_name
+      if @@blacklist.include? cls.canon_name
         $stderr.puts "Attempt to load blacklisted plugin #{cls.canon_name}"
         return nil
       end
@@ -300,7 +300,7 @@ If the plugin was successfully loaded, all subscribers will be notified.
         return false
       end
 
-      @plugins[cls.canon_name] = obj
+      @@plugins[cls.canon_name] = obj
       notify(NOTIFY_LOAD, obj)
       obj
     end
@@ -310,7 +310,7 @@ Unload a plugin. All subscribers are notified.
 Note: This takes a Plugin object as its argument, not a Plugin class.
 =end
     def self.unload(plugin)
-      obj = @plugins.delete plugin.class.canon_name
+      obj = @@plugins.delete plugin.class.canon_name
       return if not obj
       notify(NOTIFY_UNLOAD, obj)
     end
@@ -327,7 +327,7 @@ Read a Plugin Ruby module via Kernel#load. This checks if the module was
 blacklisted via blacklist_file().
 =end
     def self.read_file(path)
-      return if (! @blacklist_file.select { |d| d.end_with? path }.empty? )
+      return if (! @@blacklist_file.select { |d| d.end_with? path }.empty? )
         
       begin
         load path
@@ -367,7 +367,7 @@ and invokes read_dir() on the resulting path.
     def self.read_all
       # Read in all plugin directories in Ruby module path ($:)
       load_paths = $:.uniq.inject([]) do |arr, x|
-        @base_dirs.each do |dir| 
+        @@base_dirs.each do |dir| 
           path = File.join(x, dir)
           next if (! File.exist? path) || (! File.directory? path)
           read_dir(path)
@@ -383,7 +383,7 @@ Return a Hash [String -> Plugin] of all loaded plugins. String is the
 canonical name (Plugin#canon_name) of the plugin.
 =end
     def self.plugins
-      @plugins.dup
+      @@plugins.dup
     end
 
 =begin rdoc
@@ -416,9 +416,9 @@ Return the first Plugin whose canon_name matches 'name'. Note that 'name'
 can be a String or a Regexp.
 =end
     def self.find(name)
-      matches = @plugins.keys.sort.select { |k| (name.kind_of? Regexp) ? 
+      matches = @@plugins.keys.sort.select { |k| (name.kind_of? Regexp) ? 
                                         (k =~ name) : (k.starts_with? name) }
-      (matches.empty?) ? nil : @plugins[matches.first]
+      (matches.empty?) ? nil : @@plugins[matches.first]
     end
 
 =begin rdoc
@@ -435,7 +435,7 @@ Example:
 =end
     def self.providing(spec_name, *args)
       sym = spec_name.to_sym
-      @plugins.values.inject([]) { |a,p| 
+      @@plugins.values.inject([]) { |a,p| 
                                    a << [p, ((args.empty?) ? 
                                          p.spec_supported?(sym) : 
                                          p.spec_rating(sym, *args)) ]; a 
@@ -454,7 +454,7 @@ Example:
 =end
     def self.fittest_providing(spec_name, *args, &block)
       sym = spec_name.to_sym
-      p = @plugins.values.inject([]) { |a,p| 
+      p = @@plugins.values.inject([]) { |a,p| 
                                        a << [p, p.spec_rating(sym, *args)]; a 
                                      }.sort { |a,b| 
                                        b[1] <=> a[1] 
