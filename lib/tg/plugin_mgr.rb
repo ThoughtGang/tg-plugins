@@ -309,7 +309,7 @@ If the plugin was successfully loaded, all subscribers will be notified.
         obj = cls.new
       rescue Exception => e
         $stderr.puts "Unable to load Plugin #{cls.canon_name}: #{e.message}"
-        $stderr.puts e.backtrace.join("\n")
+        print_backtrace(e)
         return false
       end
 
@@ -347,7 +347,7 @@ blacklisted via blacklist_file().
       rescue Exception => e
         $stderr.puts "Unable to load Plugin module #{path}: #{e.message}"
         # Suppress stacktrace if this is simply a missing dependency
-        $stderr.puts e.backtrace.join("\n") if e.message !~ /^no such file/
+        print_backtrace(e) if e.message !~ /^no such file/
       end
     end
 
@@ -493,6 +493,15 @@ Example:
       p_obj = p ? p.first : nil
       yield p_obj if p_obj && block_given?
       p_obj
+    end
+
+    private
+
+    def self.print_backtrace(e)
+      # FIXME: This hard-codes filename! __FILE__ doesn't work
+      $stderr.puts e.backtrace.inject([]) { |a, x| 
+        break a if (x.include? File.join('tg', 'plugin_mgr.rb')); a << x; a
+      }.join("\n")
     end
 
   end
