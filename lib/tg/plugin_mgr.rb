@@ -394,6 +394,18 @@ and invokes read_dir() on the resulting path.
       end
     end
 
+=begin rdoc
+Retun an Array of all directories search for plugins. If include_missing
+is true, the list will include all directories in the search path, whether
+they exist or not. The default is to only include existing directories.
+=end
+    def self.plugin_dirs(include_missing=false)
+      dirs = []
+      $:.uniq.each { |d| @@base_dirs.map { |p| dirs << File.join(d, p) } }
+      dirs += @@absolute_dirs
+      include_missing ? dirs : dirs.select { |path| File.exist? path }
+    end
+
     # ----------------------------------------------------------------------
     # List Plugins/Specs
 

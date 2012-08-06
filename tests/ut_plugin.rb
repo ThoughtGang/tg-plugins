@@ -124,15 +124,18 @@ end
 class TC_ApiDevTest < Test::Unit::TestCase
 
   def test_plugin
+    # Specifications used by plugins
     u_spec = TG::Plugin::Specification.new(SPEC_UNARY, SPEC_UNARY_PROTO,
                                               SPEC_UNARY_IN, SPEC_UNARY_OUT)
-    b_spec = TG::Plugin::Specification.new(SPEC_BINARY, SPEC_BINARY_PROTO,
-                                              SPEC_BINARY_IN, SPEC_BINARY_OUT)
+
     assert_equal(u_spec, TG::Plugin::Specification.specs[SPEC_UNARY])
     assert_equal(u_spec.name, SPEC_UNARY)
     assert_equal(u_spec.proto, SPEC_UNARY_PROTO)
     assert_equal(u_spec.input, SPEC_UNARY_IN)
     assert_equal(u_spec.output, SPEC_UNARY_OUT)
+
+    b_spec = TG::Plugin::Specification.new(SPEC_BINARY, SPEC_BINARY_PROTO,
+                                              SPEC_BINARY_IN, SPEC_BINARY_OUT)
 
     assert_equal(b_spec, TG::Plugin::Specification.specs[SPEC_BINARY])
     assert_equal(b_spec.name, SPEC_BINARY)

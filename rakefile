@@ -52,11 +52,9 @@ spec = Gem::Specification.new do |spec|
   spec.requirements = []
 
   spec.files = MOD_FILES
-  spec.executables = BIN_FILES
 
   #spec.extra_rdoc_files = Dir['module/rdoc_input/*.rb']
-  #spec.extensions = Dir['module/extconf.rb']
-  spec.test_files = MOD_UNIT_TESTS
+  spec.test_files = UNIT_TESTS
 end
 
 Gem::PackageTask.new(spec) do |pkg|
