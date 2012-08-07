@@ -426,6 +426,13 @@ Plugin classes.
     end
 
 =begin rdoc
+Return Specification object for name.
+=end
+    def self.specification(name)
+      TG::Plugin::Specification.spec(name)
+    end
+
+=begin rdoc
 Return a Hash [Symbol -> Plugin::Specification] of all registered specs. Symbol
 is the name of the Specification. A spec is registered by instantiating 
 Plugin::Specification.

@@ -649,6 +649,13 @@ Return a Hash [name -> Specification] of all Specification objects.
         @@specs ? @@specs.dup : {}
       end
 
+=begin rdoc
+Return Specification object for symbol.
+=end
+      def self.spec(sym)
+        (@@specs || {})[sym.to_sym]
+      end
+
       private
 
       def force_class_objects( arr )
