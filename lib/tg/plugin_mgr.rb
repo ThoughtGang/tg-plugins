@@ -455,7 +455,7 @@ can be a String or a Regexp.
 =end
     def self.find(name)
       matches = @@plugins.keys.sort.select { |k| (name.kind_of? Regexp) ? 
-                                        (k =~ name) : (k.starts_with? name) }
+                                        (k =~ name) : (k.start_with? name) }
       (matches.empty?) ? nil : @@plugins[matches.first]
     end
 
