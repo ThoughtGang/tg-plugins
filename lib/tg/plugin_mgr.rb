@@ -374,7 +374,9 @@ All files with a '.rb' extension are loaded via require.
     end
 
     # Loading a dir of specifications is just like loading a dir of plugins
-    alias :load_specification_dir :read_dir
+    def self.load_specification_dir(path)
+      read_dir path
+    end
 
 =begin rdoc
 Read all Plugin Ruby Modules in all base directories. This appends each
