@@ -9,6 +9,7 @@ Copyright 2012 Thoughtgang <http://www.thoughtgang.org>
 require 'tg/plugin'
 
 # TODO: debug, debug stream ($stderr)
+# TODO: load specification dir
 
 module TG
 
@@ -372,6 +373,9 @@ All files with a '.rb' extension are loaded via require.
       end
     end
 
+    # Loading a dir of specifications is just like loading a dir of plugins
+    alias :load_specification_dir :read_dir
+
 =begin rdoc
 Read all Plugin Ruby Modules in all base directories. This appends each
 entry in base_dirs in turn to all paths in the Ruby module path array ($:),
@@ -405,6 +409,7 @@ they exist or not. The default is to only include existing directories.
       dirs += @@absolute_dirs
       include_missing ? dirs : dirs.select { |path| File.exist? path }
     end
+
 
     # ----------------------------------------------------------------------
     # List Plugins/Specs
