@@ -1,7 +1,7 @@
 #!/usr/bin/env ruby
 # :title: TG::Plugin
 =begin rdoc
-Copyright 2011 Thoughtgang <http://www.thoughtgang.org>
+Copyright 2013 Thoughtgang <http://www.thoughtgang.org>
 
 ==Specification
 
@@ -192,7 +192,8 @@ or no arguments are provided, the default rating is returned.
 
       # return rating based on args (via block), or the default rating
       block = impl.rating_block
-      (block && ! args.empty?) ? block.call(*args) : impl.default_rating
+      (block && ! args.empty?) ? self.instance_exec(*args, &block) : \
+                                 impl.default_rating
     end
 
 =begin rdoc
@@ -735,8 +736,8 @@ Specification.
 =end
     def spec(iface_sym, fn_sym, rating=50, &block)
       @specs ||= {}
-      @specs[iface_sym] = MethodSpecification.new(fn_sym, rating,
-                                                ((block_given?) ? block : nil))
+      blk = (block_given?) ? Proc.new(&block) : nil
+      @specs[iface_sym] = MethodSpecification.new(fn_sym, rating, blk)
     end
 
     alias :specification :spec
