@@ -365,9 +365,8 @@ blacklisted via blacklist_file().
       begin
         load path
       rescue Exception => e
-        # Suppress stacktrace if this is simply a missing dependency
         if $TG_PLUGIN_DEBUG
-          $TG_PLUGIN_DEBUG_STREAM.puts "Unable to load Plugin %s: %s" % \
+          $TG_PLUGIN_DEBUG_STREAM.puts "Unable to parse Plugin file %s: %s" % \
                                        [path.inspect, e.message.inspect]
           print_backtrace(e)
         end

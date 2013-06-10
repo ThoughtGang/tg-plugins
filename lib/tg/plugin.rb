@@ -178,6 +178,11 @@ Return the rating for a Specification implementation for the provided
 arguments. This invokes the MethodSpecification rating_block on the arguments
 to return a rating. If there is no rating_block for the MethodSpecification,
 or no arguments are provided, the default rating is returned.
+
+Note that all exceptions raised by the specification are caught and written
+to TG_PLUGIN_DEBUG_STREAM if TG_PLUGIN_DEBUG is set. The only exceptions
+raised by this method will be InvalidSpecificationError and
+ArgumentTypeError.
 =end
     def spec_rating(sym, *args)
       spec = Plugin::Specification.specs[sym]
@@ -191,14 +196,29 @@ or no arguments are provided, the default rating is returned.
       return 0 if ! spec.validate_input(*args)
 
       # return rating based on args (via block), or the default rating
-      block = impl.rating_block
-      (block && ! args.empty?) ? self.instance_exec(*args, &block) : \
-                                 impl.default_rating
+      rating = impl.default_rating
+      begin
+        block = impl.rating_block
+        rating = self.instance_exec(*args, &block) if (block && ! args.empty?)
+      rescue Exception => e
+        if $TG_PLUGIN_DEBUG
+          $TG_PLUGIN_DEBUG_STREAM.puts "Error rating %s for %s : %s" % \
+                                       [sym.to_s, self.canon_name, e.message]
+          $TG_PLUGIN_DEBUG_STREAM.puts e.backtrace.join("\n")
+        end
+        rating = 0  # No point using plugins that failed the rating call!
+      end
+      rating
     end
 
 =begin rdoc
 Invoke an specification implementation in the plugin. 
 'sym' is the Specification name.
+
+Note that all exceptions raised by the specification are caught and written
+to TG_PLUGIN_DEBUG_STREAM if TG_PLUGIN_DEBUG is set. The only exceptions
+raised by this method will be InvalidSpecificationError and
+ArgumentTypeError.
 =end
     def spec_invoke(sym, *args)
       spec = Plugin::Specification.specs[sym]
@@ -207,10 +227,21 @@ Invoke an specification implementation in the plugin.
       # ensure args to method are valid according to spec
       spec.validate_input!(*args)
 
-      # invoke method for spec
+      # objtain spec implementation
       impl = specs[sym]
       raise Plugin::InvalidSpecificationError.new(sym.to_s) if not impl
-      rv = self.send(impl.symbol, *args)
+
+      # invoke method for spec. note: this captures all exceptions.
+      rv = nil
+      begin
+        rv = self.send(impl.symbol, *args)
+      rescue Exception => e
+        if $TG_PLUGIN_DEBUG
+          $TG_PLUGIN_DEBUG_STREAM.puts "Error invoking %s for %s : %s" % \
+                                       [sym.to_s, self.canon_name, e.message]
+          $TG_PLUGIN_DEBUG_STREAM.puts e.backtrace.join("\n")
+        end
+      end
 
       # ensure return value from method is valid according to spec
       spec.validate_output!(rv)
@@ -255,6 +286,9 @@ the Hash).
 
 # =============================================================================
 =begin rdoc
+
+Note that name and version are required.
+
 Example:
   class MyPlugin
     extend TG::Plugin
