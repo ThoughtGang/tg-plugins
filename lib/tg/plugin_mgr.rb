@@ -3,13 +3,21 @@
 =begin rdoc
 TG Plugin Manager
 
-Copyright 2012 Thoughtgang <http://www.thoughtgang.org>
+Copyright 2013 Thoughtgang <http://www.thoughtgang.org>
 =end
 
 require 'tg/plugin'
 
-# TODO: debug, debug stream ($stderr)
-# TODO: load specification dir
+=begin rdoc
+Global debug flag. This can be set by an application in order to debug
+problems with plugins.
+=end
+$TG_PLUGIN_DEBUG = false
+
+=begin rdoc
+Stream to which plugin debug messages are sent.
+=end
+$TG_PLUGIN_DEBUG_STREAM = $stderr
 
 module TG
 
@@ -269,11 +277,13 @@ otherwise.
     def self.check_plugin_dependencies(cls)
       deps = cls.check_dependencies
       if (! deps[:unmet].empty?)
-        $stderr.puts "Cannot load plugin #{cls.canon_name}" 
-        $stderr.puts "Unresolved dependencies:"
-        deps[:unmet].each { |h| 
-          $stderr.puts [h[:name], h[:op], h[:version]].join(' ')
-        }
+        if $TG_PLUGIN_DEBUG
+          $TG_PLUGIN_DEBUG_STREAM.puts "Cannot load plugin #{cls.canon_name}" 
+          $TG_PLUGIN_DEBUG_STREAM.puts "Unresolved dependencies:"
+          deps[:unmet].each { |h| 
+            $TG_PLUGIN_DEBUG_STREAM.puts [h[:name],h[:op],h[:version]].join(' ')
+          }
+        end
         return false
       end
         
@@ -281,7 +291,10 @@ otherwise.
       deps[:met].each do |dep_cls|
         dep_obj = load_plugin(dep_cls)
         if ! dep_obj
-          $stderr.puts "Unable to load dependency: #{dep_cls.canon_name}"
+          if $TG_PLUGIN_DEBUG
+            $TG_PLUGIN_DEBUG_STREAM.puts "Unable to load dependency: " + \
+                                         dep_cls.canon_name.inspect
+          end
           return false
         end
       end
@@ -299,7 +312,10 @@ If the plugin was successfully loaded, all subscribers will be notified.
       return @@plugins[cls.canon_name] if (@@plugins.include? cls.canon_name)
 
       if @@blacklist.include? cls.canon_name
-        $stderr.puts "Attempt to load blacklisted plugin #{cls.canon_name}"
+        if $TG_PLUGIN_DEBUG
+          $TG_PLUGIN_DEBUG_STREAM.puts "Attempt to load blacklisted plugin " + \
+                                       cls.canon_name.inspect
+        end
         return nil
       end
 
@@ -309,8 +325,11 @@ If the plugin was successfully loaded, all subscribers will be notified.
       begin
         obj = cls.new
       rescue Exception => e
-        $stderr.puts "Unable to load Plugin #{cls.canon_name}: #{e.message}"
-        print_backtrace(e)
+        if $TG_PLUGIN_DEBUG
+          $TG_PLUGIN_DEBUG_STREAM.puts "Unable to load Plugin %s: %s" % \
+                                  [cls.canon_name.inspect, e.message.inspect]
+          print_backtrace(e)
+        end
         return false
       end
 
@@ -346,9 +365,12 @@ blacklisted via blacklist_file().
       begin
         load path
       rescue Exception => e
-        $stderr.puts "Unable to load Plugin module #{path}: #{e.message}"
         # Suppress stacktrace if this is simply a missing dependency
-        print_backtrace(e) if e.message !~ /^no such file/
+        if $TG_PLUGIN_DEBUG
+          $TG_PLUGIN_DEBUG_STREAM.puts "Unable to load Plugin %s: %s" % \
+                                       [path.inspect, e.message.inspect]
+          print_backtrace(e)
+        end
       end
     end
 
@@ -513,9 +535,9 @@ Example:
 
     def self.print_backtrace(e)
       # FIXME: This hard-codes filename! __FILE__ doesn't work
-      $stderr.puts e.backtrace.inject([]) { |a, x| 
-        break a if (x.include? File.join('tg', 'plugin_mgr.rb')); a << x; a
-      }.join("\n")
+      $TG_PLUGIN_DEBUG_STREAM.puts e.backtrace.inject([]) { |a, x| 
+          break a if (x.include? File.join('tg', 'plugin_mgr.rb')); a << x; a
+        }.join("\n")
     end
 
   end
