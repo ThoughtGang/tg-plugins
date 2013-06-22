@@ -245,7 +245,13 @@ ArgumentTypeError.
       end
 
       # ensure return value from method is valid according to spec
-      spec.validate_output!(rv)
+      if $TC_PLUGIN_FORCE_VALID_RETURN
+        spec.validate_output!(rv)
+      elsif $TG_PLUGIN_DEBUG && (!spec.validate_output(rv))
+        $TG_PLUGIN_DEBUG_STREAM.puts "Warning: %s %s Expected: %s Got: %s" % \
+                                     [self.canon_name, sym.to_s, 
+                                      spec.output.class, rv.class]
+      end
 
       rv
     end

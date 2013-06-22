@@ -19,6 +19,11 @@ Stream to which plugin debug messages are sent.
 =end
 $TG_PLUGIN_DEBUG_STREAM = $stderr
 
+=begin rdoc
+Raise an exception if Plugins return the incorrect type from a Specification.
+=end
+$TG_FORCE_VALID_RETURN = false
+
 module TG
 
 =begin rdoc
