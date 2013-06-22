@@ -245,7 +245,7 @@ ArgumentTypeError.
       end
 
       # ensure return value from method is valid according to spec
-      if $TC_PLUGIN_FORCE_VALID_RETURN
+      if $TG_PLUGIN_FORCE_VALID_RETURN
         spec.validate_output!(rv)
       elsif $TG_PLUGIN_DEBUG && (!spec.validate_output(rv))
         $TG_PLUGIN_DEBUG_STREAM.puts "Warning: %s %s Expected: %s Got: %s" % \
