@@ -406,7 +406,7 @@ and invokes read_dir() on the resulting path.
 =end
     def self.read_all
       # Read in all plugin directories in Ruby module path ($:)
-      load_paths = $:.uniq.inject([]) do |arr, x|
+      $:.uniq.inject([]) do |arr, x|
         @@base_dirs.each do |dir| 
           path = File.join(x, dir)
           next if (! File.exist? path) || (! File.directory? path)
@@ -520,12 +520,12 @@ Example:
 =end
     def self.fittest_providing(spec_name, *args, &block)
       sym = spec_name.to_sym
-      p = @@plugins.values.inject([]) { |a,p| 
+      arr = @@plugins.values.inject([]) { |a,p| 
                                        a << [p, p.spec_rating(sym, *args)]; a 
                                      }.sort { |a,b| 
                                        b[1] <=> a[1] 
                                      }.reject { |a| a[1] == 0 }.first
-      p_obj = p ? p.first : nil
+      p_obj = arr ? arr.first : nil
       yield p_obj if p_obj && block_given?
       p_obj
     end

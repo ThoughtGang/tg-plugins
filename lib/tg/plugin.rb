@@ -406,7 +406,7 @@ Valid values for op:
             ! (VALID_DEP_OPS.include? op)
 
       @dependencies << { :name => dep_name, :op => op, :version => dep_version }
-  end
+    end
 
 =begin rdoc
 Return list of plugin dependencies.
