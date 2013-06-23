@@ -93,7 +93,6 @@ present.
     def initialize
       raise 'Missing "name" in plugin class definition' if (! name)
       raise 'Missing "version" in plugin class definition' if (! version)
-      @dependencies = []
     end
 
   # ----------------------------------------------------------------------
@@ -411,7 +410,7 @@ Valid values for op:
       raise InvalidDependencyOpError.new(op.inspect) if op && \
             ! (VALID_DEP_OPS.include? op)
 
-      @dependencies << { :name => dep_name, :op => op, :version => dep_version }
+      dependencies << { :name => dep_name, :op => op, :version => dep_version }
     end
 
 =begin rdoc
@@ -419,7 +418,7 @@ Return list of plugin dependencies.
 Each dependency is a Hash with the keys :name, :op, and :version
 =end
     def dependencies
-      @dependencies
+      @dependencies ||= []
     end
 
 =begin rdoc
