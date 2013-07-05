@@ -193,7 +193,12 @@ ArgumentTypeError.
       return 0 if ! impl
 
       # check that args are valid for spec
-      return 0 if ! spec.validate_input(*args)
+      if ! spec.validate_input(*args)
+        if $TG_PLUGIN_DEBUG
+          $TG_PLUGIN_DEBUG_STREAM.puts "#{sym}: INVALID INPUT #{args.inspect}"
+        end
+        return 0 
+      end
 
       # return rating based on args (via block), or the default rating
       rating = impl.default_rating
