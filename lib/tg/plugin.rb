@@ -544,7 +544,7 @@ input argument types and a return type.
 
 Example:
 
-  Specification.new( :find, 'matches find(needle, haystack), 
+  Specification.new( :find, 'matches find(needle, haystack)', 
                      [ [String, Fixnum], Array ], Array )
 =end
     class Specification
