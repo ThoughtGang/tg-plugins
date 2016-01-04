@@ -564,10 +564,10 @@ for the input arguments and the output.
 
 Examples:
 
-  proto 'product mul( number_a, number_b )'
-  proto 'quotient div( numerator, demoninator )'
-  proto 'success copy( dest, src )'
-  proto 'matches find( needle, haystack )'
+  prototype 'product mul( number_a, number_b )'
+  prototype 'quotient div( numerator, demoninator )'
+  prototype 'success copy( dest, src )'
+  prototype 'matches find( needle, haystack )'
 =end
       attr_reader :prototype
 
