@@ -7,7 +7,7 @@ require 'rake/testtask'
 require 'rubygems/package_task'
 
 MOD_NAME    = 'tg-plugins'
-MOD_VERSION = '0.1'
+MOD_VERSION = '1.0'
 
 # ---------------------------------------------------------------------- 
 # Default build target(s)
