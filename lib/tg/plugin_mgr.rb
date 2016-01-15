@@ -531,7 +531,7 @@ Example:
                                        b[1] <=> a[1] 
                                      }.reject { |a| a[1] == 0 }.first
       # at this point, arr[0] is the plugin and arr[1] is its score
-      if $TG_PLUGIN_DEBUG
+      if $TG_PLUGIN_DEBUG and arr
         name = arr[0] ? arr[0].name : 'nil'
         msg = "%s : %s [%d]" % [spec_name.to_s, name, arr[1] || 0]
         $TG_PLUGIN_DEBUG_STREAM.puts msg

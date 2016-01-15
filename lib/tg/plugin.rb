@@ -232,7 +232,7 @@ ArgumentTypeError.
       # ensure args to method are valid according to spec
       spec.validate_input!(*args)
 
-      # objtain spec implementation
+      # obtain spec implementation
       impl = specs[sym]
       raise Plugin::InvalidSpecificationError.new(sym.to_s) if not impl
 
