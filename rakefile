@@ -1,13 +1,12 @@
 # Ruby Rakefile for Thoughtgang Plugin module
 # Copyright 2012 Thoughtgang <http://www.thoughtgang.org>
 
-#require 'rake/packagetask'
 require 'rdoc/task'
 require 'rake/testtask'
 require 'rubygems/package_task'
 
 MOD_NAME    = 'tg-plugins'
-MOD_VERSION = '1.0'
+MOD_VERSION = '1.0.0'
 
 # ---------------------------------------------------------------------- 
 # Default build target(s)
@@ -45,20 +44,17 @@ spec = Gem::Specification.new do |spec|
   spec.author = 'ThoughtGang'
   spec.email = 'support@thoughtgang.org'
   spec.homepage = 'http://www.thoughtgang.org'
-  #spec.licenses = [ "GPLv3" ]
+  spec.licenses = [ 'BSD' ]
 
   spec.required_ruby_version = '>= 1.8.7'
-  #spec.required_ruby_version = '>= 1.9.0'
   spec.requirements = []
 
   spec.files = MOD_FILES
 
-  #spec.extra_rdoc_files = Dir['module/rdoc_input/*.rb']
   spec.test_files = UNIT_TESTS
 end
 
 Gem::PackageTask.new(spec) do |pkg|
-  # pkg.enhance( [ :ui ] )
   pkg.need_zip = false
   pkg.need_tar = true
 end
