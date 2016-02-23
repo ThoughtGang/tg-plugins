@@ -101,7 +101,7 @@ present.
 =begin rdoc
 Return plugin name property (String).
 =end
-    def name() self.class.name; end
+    def name() self.class.plugin_name; end
 
 =begin rdoc
 Return plugin version property (String).
@@ -356,7 +356,9 @@ have extended (mixed-in) the Plugin module.
 =begin rdoc
 Accessor for plugin name property.
 =end
-    def name(str=nil) (str ? (@name = str) : @name); end
+    def plugin_name(str=nil) (str ? (@name = str) : @name); end
+    # name(str) will set plugin_name; name() will return class name.
+    def name(str=nil) str ? plugin_name(str) : super(); end
 
 =begin rdoc
 Accessor for plugin version property.
@@ -370,7 +372,7 @@ joined by a dash ('-') character.
 The canonical name is used when the application or framework must support
 more than one version of a plugin.
 =end
-    def canon_name() name + '-' + version; end
+    def canon_name() plugin_name + '-' + version; end
 
 =begin rdoc
 Accessor for plugin author property.
