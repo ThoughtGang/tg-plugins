@@ -689,6 +689,13 @@ Add a Specification instance to the Hash of all Specifications.
       end
 
 =begin rdoc
+Remove all specifications.
+=end
+      def self.clear_specs
+        @@specs = {}
+      end
+
+=begin rdoc
 Return a Hash [name -> Specification] of all Specification objects.
 =end
       def self.specs

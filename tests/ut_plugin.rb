@@ -6,6 +6,7 @@ require 'test/unit'
 
 require 'tg/plugin'
 
+$TG_PLUGIN_FORCE_VALID_RETURN = true
 
 # ===========================================================================
 # Interfaces
@@ -177,8 +178,8 @@ class TC_ApiDevTest < Test::Unit::TestCase
     assert( (a.spec_supported? SPEC_BINARY) != nil )
     assert( (a.spec_supported? :fake_spec) == nil )
 
-    assert( 6, (a.spec_invoke(SPEC_UNARY, 5)) )
-    assert( 5, (a.spec_invoke(SPEC_BINARY, 2, 3)) )
+    assert_equal( 6, (a.spec_invoke(SPEC_UNARY, 5)) )
+    assert_equal( 5, (a.spec_invoke(SPEC_BINARY, 2, 3)) )
     assert_raises(TG::Plugin::InvalidSpecificationError) {
       a.spec_invoke(:fake_spec, 0)
     }

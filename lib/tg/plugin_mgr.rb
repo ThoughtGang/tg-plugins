@@ -100,6 +100,10 @@ app_init_and_startup:
     # used directly and should contain absolute paths.
     @@absolute_dirs = []
 
+    # per-specification weights to add to specific plugins.
+    # this allows the user to express a preference for specific plugins.
+    @@spec_bias = {}
+
     # ----------------------------------------------------------------------
     # Hooks
 
@@ -207,21 +211,32 @@ notification and the Plugin object to all subscribers.
 =begin rdoc
 Unload all plugins. This leaves the configuration of the PluginManager
 (blacklists, subscribers, base dirs, etc) intact.
+NOTE: This does not remove plugin modules (i.e. plugin classes whoise ruby
+modules have been succesfully parsed) or specifications.
 =end
     def self.clear
       @@plugins.clear
     end
 
 =begin rdoc
+Remove all specifications. This invokes tg::Plugin::Specification.clear_specs.
+=end
+    def self.clear_specs
+      TG::Plugin::Specification.clear_specs
+    end
+
+=begin rdoc
 Clear the PluginManager lists of base directories, blacklisted plugins,
-blacklisted plugin modules, and subscribers.
+blacklisted plugin modules, spec bias, and subscribers.
+NOTE: This also clears loaded (but not avaiulable!) plugins via clear().
 =end
     def self.purge
       self.clear
       @@blacklist.clear
       @@blacklist_file.clear
-      @@basedirs.clear
+      @@base_dirs.clear
       @@subscribers.clear
+      @@spec_bias.clear
     end
 
 =begin rdoc
@@ -249,9 +264,25 @@ Note: 'name' is expected to be obtained from Plugin.canon_name. The blacklist
 checks for an exact match against this name when loading Plugin classes; this
 allows specific versions of a Plugin to be blacklisted. The String returned
 by Plugin#canon_name is Plugin.name + '-' + Plugin.version.
+
+If the plugin is already loaded, it will be unloaded.
 =end
     def self.blacklist(name)
+      [name].flatten.each { |n| self.unload(@@plugins[n]) if @@plugins[n] }
       @@blacklist.concat [name].flatten
+    end
+
+=begin rdoc
+Remove a plugin from the blacklist. If the plugin is not already loaded, it will
+be.
+This can be used to enable a previously-loaded plugin, whether blacklisted or
+not.
+=end
+    def self.blacklist_remove(name)
+      @@blacklist.delete!(name)
+      cls = TG::Plugin::available_plugins.select { |cls| p.canon_name == name
+                                                 }.first
+      self.load_plugin(cls) if cls
     end
 
 =begin rdoc
@@ -269,6 +300,25 @@ users via config files.
 =end
     def self.blacklist_file(path)
       @@blacklist_file.concat [path].flatten
+    end
+
+=begin rdoc
+Set the bias value for a particular spec implementation.
+This allows a user to override the specification 'fitness' weights generated
+during fittest_providing().
+The bias can be a positive or negative number, and is added to the fitness
+weight returned by the plugin for that specification.
+=end
+    def self.set_spec_bias(spec, plugin, bias)
+      @@spec_bias[spec.to_sym] ||= {}
+      @@spec_bias[spec.to_sym][plugin.name] = bias
+    end
+
+=begin rdoc
+Return the bias value for a plugin implementation of a specification, or zero.
+=end
+    def self.spec_bias(spec, plugin)
+      (@@spec_bias[spec.to_sym] || {})[plugin.name] || 0
     end
 
     # ----------------------------------------------------------------------
@@ -493,6 +543,16 @@ can be a String or a Regexp.
     end
 
 =begin rdoc
+Return the rating for a plugin implementation of a specification based on 
+arguments (which can be empty) and any configured bias for the plugin.
+=end
+    def self.biased_fitness(p, sym, *args)
+     rating = (args.empty?) ? p.spec_supported?(sym).to_i : 
+                              p.spec_rating(sym, *args)
+     rating + spec_bias(sym, p)
+    end
+
+=begin rdoc
 Return a list of all plugins providing an implementation of the named 
 Specification. The plugins will be ordered by their default rating for this
 spec. The return value for each Plugin is an Array [Plugin, Fixnum] containing
@@ -507,9 +567,7 @@ Example:
     def self.providing(spec_name, *args)
       sym = spec_name.to_sym
       @@plugins.values.inject([]) { |a,p| 
-                                   a << [p, ((args.empty?) ? 
-                                         p.spec_supported?(sym) : 
-                                         p.spec_rating(sym, *args)) ]; a 
+                                   a << [p, biased_fitness(p, sym, *args)]; a 
                                  }.select { |p,r| r && r > 0 
                                  }.sort { |a,b| b[1] <=> a[1] }
     end
@@ -526,7 +584,8 @@ Example:
     def self.fittest_providing(spec_name, *args, &block)
       sym = spec_name.to_sym
       arr = @@plugins.values.inject([]) { |a,p| 
-                                       a << [p, p.spec_rating(sym, *args)]; a 
+                                       a << [p, biased_fitness(p, sym, *args)]
+                                       a 
                                      }.sort { |a,b| 
                                        b[1] <=> a[1] 
                                      }.reject { |a| a[1] == 0 }.first
@@ -540,6 +599,15 @@ Example:
       p_obj = arr ? arr.first : nil
       yield p_obj if p_obj && block_given?
       p_obj
+    end
+
+=begin rdoc
+Find the fittest plugin for the spec, given args, and invoke it. The return
+value of the spec implementation is returned, or nil if no plugin was found.
+=end
+    def self.fittest_invoke(spec_name, *args)
+      p = fittest_providing(spec_name, *args)
+      p ? p.spec_invoke(spec_name, *args) : nil
     end
 
     private
