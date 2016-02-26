@@ -71,7 +71,6 @@ app_init_and_startup:
 
 =end
   class PluginManager
-    CONF_NAME = 'plugins'
 
     # Location of shared modules under the plugin base directories. Any
     # directory with this name is not scanned for Plugin modules.
