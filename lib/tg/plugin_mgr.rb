@@ -279,7 +279,7 @@ not.
 =end
     def self.blacklist_remove(name)
       @@blacklist.delete(name)
-      cls = TG::Plugin::available_plugins.select { |cls| p.canon_name == name
+      cls = TG::Plugin::available_plugins.select { |cls| cls.canon_name == name
                                                  }.first
       self.load_plugin(cls) if cls
     end
