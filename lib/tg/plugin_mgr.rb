@@ -278,7 +278,7 @@ This can be used to enable a previously-loaded plugin, whether blacklisted or
 not.
 =end
     def self.blacklist_remove(name)
-      @@blacklist.delete!(name)
+      @@blacklist.delete(name)
       cls = TG::Plugin::available_plugins.select { |cls| p.canon_name == name
                                                  }.first
       self.load_plugin(cls) if cls
@@ -309,8 +309,9 @@ The bias can be a positive or negative number, and is added to the fitness
 weight returned by the plugin for that specification.
 =end
     def self.set_spec_bias(spec, plugin, bias)
+      plugin_name = (plugin.kind_of? String) ? plugin : plugin.name
       @@spec_bias[spec.to_sym] ||= {}
-      @@spec_bias[spec.to_sym][plugin.name] = bias
+      @@spec_bias[spec.to_sym][plugin_name] = bias
     end
 
 =begin rdoc
