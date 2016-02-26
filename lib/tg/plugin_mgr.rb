@@ -278,7 +278,7 @@ This can be used to enable a previously-loaded plugin, whether blacklisted or
 not.
 =end
     def self.blacklist_remove(name)
-      @@blacklist.delete!(name)
+      @@blacklist.delete(name)
       cls = TG::Plugin::available_plugins.select { |cls| p.canon_name == name
                                                  }.first
       self.load_plugin(cls) if cls
