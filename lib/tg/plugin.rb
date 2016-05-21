@@ -1,7 +1,7 @@
 #!/usr/bin/env ruby
 # :title: TG::Plugin
 =begin rdoc
-Copyright 2013 Thoughtgang <http://www.thoughtgang.org>
+Copyright 2016 Thoughtgang <http://www.thoughtgang.org>
 
 ==Specification
 

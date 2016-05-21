@@ -3,7 +3,7 @@
 =begin rdoc
 TG Plugin Manager
 
-Copyright 2013 Thoughtgang <http://www.thoughtgang.org>
+Copyright 2016 Thoughtgang <http://www.thoughtgang.org>
 =end
 
 require 'tg/plugin'

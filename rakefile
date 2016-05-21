@@ -1,12 +1,12 @@
 # Ruby Rakefile for Thoughtgang Plugin module
-# Copyright 2012 Thoughtgang <http://www.thoughtgang.org>
+# Copyright 2016 Thoughtgang <http://www.thoughtgang.org>
 
 require 'rdoc/task'
 require 'rake/testtask'
 require 'rubygems/package_task'
 
 MOD_NAME    = 'tg-plugins'
-MOD_VERSION = '1.1.4'
+MOD_VERSION = '1.2'
 
 # ---------------------------------------------------------------------- 
 # Default build target(s)
@@ -38,15 +38,14 @@ spec = Gem::Specification.new do |spec|
   spec.name = MOD_NAME
   spec.version = MOD_VERSION
   spec.summary = 'Plugin and PluginManager classes'
-  spec.description = '
-  '
+  spec.description = 'Plugin system for Ruby projects.'
 
   spec.author = 'ThoughtGang'
   spec.email = 'support@thoughtgang.org'
   spec.homepage = 'http://www.thoughtgang.org'
-  spec.licenses = [ 'BSD' ]
+  spec.licenses = [ 'BSD', 'POGO' ]
 
-  spec.required_ruby_version = '>= 1.8.7'
+  spec.required_ruby_version = '>= 2.0.0'
   spec.requirements = []
 
   spec.files = MOD_FILES
