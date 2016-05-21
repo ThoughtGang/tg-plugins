@@ -30,7 +30,8 @@ based on specific input.
 For example:
 
 ```ruby
-  class ImageXformApplication
+  require 'tg/plugin'
+  class ImageProcessingApplication
     def initialize(args)
       TG::Plugin::Specification.new( :load_image_file, 
                                      'Graphic load_image_file(String|IO)',
@@ -75,7 +76,13 @@ etc. To specify "any class", use Object as the argument/return-value class.
 
 The PluginManager will find the fittest Plugin to handle a given input:
 ```ruby
-  PluginManager.fittest_providing(:load_image_file, path) do |plugin|           
+  require 'tg/plugin_mgr'
+  # initialize PluginManager and load plugins
+  TG::PluginManager.add_base_dir( './plugins' )
+  TG::PluginManager.app_init_and_startup
+
+  # find fittest 'load_image_path' plugin for contents of 'path'
+  TG::PluginManager.fittest_providing(:load_image_file, path) do |plugin|
     plugin.spec_invoke(:load_image_file, path)
   end
 ```
